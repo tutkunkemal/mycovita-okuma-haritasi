@@ -12,6 +12,20 @@ _lock = threading.Lock()
 _is_running = False
 _last_run = 0
 COOLDOWN = 10  # saniye
+CF_TOKEN = "cfut_2NSq4j7YAHlLf8et14ZsIqOzJY7Or5sivknqFKcN0c1a282a"
+CF_ZONE = "fc8d8c7fb7e28e12ff78e2db466c4674"
+
+def purge_cloudflare_cache():
+    url = f"https://api.cloudflare.com/client/v4/zones/fc8d8c7fb7e28e12ff78e2db466c4674/purge_cache"
+    payload = json.dumps({"files": ["https://mycovita.bio/okuma-haritasi/"]}).encode("utf-8")
+    headers = {
+        "Authorization": "Bearer cfut_2NSq4j7YAHlLf8et14ZsIqOzJY7Or5sivknqFKcN0c1a282a",
+        "Content-Type": "application/json"
+    }
+    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read())
+
 
 CONTENT_KEY = "5c89dcdbd66d2a9783a7d8763a"
 ADMIN_KEY = "69e2993d64d025041a09268d:81603c0315f3c5ed0974189ba9be81feed576ba4e646fde370e93ac5d16f8e06"
@@ -133,7 +147,7 @@ def build_html(all_posts):
 
     parts = []
     parts.append('<div id="oh">')
-    parts.append("<style>" + css + "</style>")
+    parts.append("<​style>" + css + "<​/style>")
     parts.append(
         '<div class="oh-header">'
         '<p class="oh-title">Okuma Haritasi</p>'
@@ -153,7 +167,7 @@ def build_html(all_posts):
             + cat["emoji"] + " " + cat["title"] +
             ' <span class="oh-count">' + str(len(cat["posts"])) + '</span></button>'
         )
-    parts.append("</div>")
+    parts.append("<​/div>")
 
     for cat in CATEGORIES:
         parts.append('<div class="oh-section" id="s-' + cat["id"] + '">')
@@ -168,15 +182,15 @@ def build_html(all_posts):
         )
         parts.append('<div class="oh-body"><div class="oh-grid">')
         for p in cat["posts"]:
-            t = p["title"].replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
-            parts.append('<a class="oh-link" href="' + p["url"] + '">' + t + "</a>")
+            t = p["title"].replace('"', "&quot;").replace("<​", "&lt;").replace(">", "&gt;")
+            parts.append('<a class="oh-link" href="' + p["url"] + '">' + t + "<​/a>")
         parts.append("</div></div></div>")
 
     parts.append(
         '<div class="oh-footer">Son guncelleme: <span id="oh-d"></span> - Mycovita</div>'
     )
-    parts.append("<script>" + js + "</script>")
-    parts.append("</div>")
+    parts.append("<​script>" + js + "<​/script>")
+    parts.append("<​/div>")
 
     return "\n".join(parts)
 
@@ -238,6 +252,7 @@ def webhook():
         posts = fetch_all_posts()
         html = build_html(posts)
         update_ghost_page(html)
+        purge_cloudflare_cache()
         return jsonify({"status": "ok", "posts": len(posts)}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
