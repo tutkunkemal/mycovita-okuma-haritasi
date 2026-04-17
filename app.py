@@ -164,7 +164,7 @@ def update_ghost_page(html_content):
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
 
-@app.route("/webhook", methods=["POST"])
+@app.route("/webhook", methods=["GET", "POST"])
 def webhook():
     try:
         posts = fetch_all_posts()
