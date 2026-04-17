@@ -1,0 +1,1 @@
+# mycovita-okuma-haritasi
