@@ -61,12 +61,12 @@ def build_html(all_posts):
             if cat["tag"] in post_tags:
                 cat["posts"].append({
                     "title": post["title"],
-                    "url": f"https://mycovita.bio/{post['slug']}/"
+                    "url": f"https://mycovita.bio/{post[chr(39)+'slug'+chr(39)]}/"
                 })
 
     total = len(all_posts)
 
-    html = f"""<div id="oh">
+    html = f'''<div id="oh">
 <style>
 #oh{{font-family:inherit;color:#3d2b1f;max-width:100%;box-sizing:border-box;}}
 .oh-header{{display:flex;align-items:center;justify-content:space-between;padding:20px 0 18px;border-bottom:2px solid #e8ddd3;margin-bottom:22px;flex-wrap:wrap;gap:12px;}}
@@ -108,7 +108,7 @@ def build_html(all_posts):
 </div>
 <div class="oh-filters">
   <button class="oh-fb on" onclick="ohAll(this)">Tümü <span class="oh-count">{total}</span></button>
-"""
+'''
 
     for cat in CATEGORIES:
         html += f'  <button class="oh-fb" onclick="ohFilter(this,\'{cat["id"]}\')">{cat["emoji"]} {cat["title"]} <span class="oh-count">{len(cat["posts"])}</span></button>\n'
@@ -120,36 +120,37 @@ def build_html(all_posts):
         for p in cat["posts"]:
             t = p["title"].replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
             posts_html += f'      <a class="oh-link" href="{p["url"]}">{t}</a>\n'
-
-        html += f"""<div class="oh-section" id="s-{cat['id']}">
+        html += f'''<div class="oh-section" id="s-{cat["id"]}">
   <div class="oh-sh" onclick="ohToggle(this)">
-    <div class="oh-sh-left"><span>{cat['emoji']}</span><p class="oh-sh-title">{cat['title']}</p></div>
-    <div class="oh-sh-right"><span class="oh-sh-badge">{len(cat['posts'])} içerik</span><span class="oh-sh-arrow">▾</span></div>
+    <div class="oh-sh-left"><span>{cat["emoji"]}</span><p class="oh-sh-title">{cat["title"]}</p></div>
+    <div class="oh-sh-right"><span class="oh-sh-badge">{len(cat["posts"])} içerik</span><span class="oh-sh-arrow">▾</span></div>
   </div>
   <div class="oh-body"><div class="oh-grid">
 {posts_html}  </div></div>
 </div>
-"""
+'''
 
-    html += """<div class="oh-footer">Son güncelleme: <span id="oh-d"></span> · Mycovita</div>
+    html += '''<div class="oh-footer">Son güncelleme: <span id="oh-d"></span> · Mycovita</div>
 <script>
-document.getElementById('oh-d').textContent=new Date().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});
-function ohToggle(h){h.closest('.oh-section').classList.toggle('oh-collapsed');}
-function ohAll(b){document.querySelectorAll('.oh-fb').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.querySelectorAll('.oh-section').forEach(s=>s.style.display='');}
-function ohFilter(b,id){document.querySelectorAll('.oh-fb').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.querySelectorAll('.oh-section').forEach(s=>s.style.display=s.id==='s-'+id?'':'none');}
-</script></div>"""
-
+document.getElementById(\'oh-d\').textContent=new Date().toLocaleDateString(\'tr-TR\',{day:\'numeric\',month:\'long\',year:\'numeric\'});
+function ohToggle(h){h.closest(\'.oh-section\').classList.toggle(\'oh-collapsed\');}
+function ohAll(b){document.querySelectorAll(\'.oh-fb\').forEach(x=>x.classList.remove(\'on\'));b.classList.add(\'on\');document.querySelectorAll(\'.oh-section\').forEach(s=>s.style.display=\'\');}
+function ohFilter(b,id){document.querySelectorAll(\'.oh-fb\').forEach(x=>x.classList.remove(\'on\'));b.classList.add(\'on\');document.querySelectorAll(\'.oh-section\').forEach(s=>s.style.display=s.id===\'s-\'+id?\'\':(\'none\'));}
+</script></div>'''
     return html
 
-def update_ghost_page(html_content):
+def get_page_info():
+    """Her seferinde fresh updated_at çek"""
     url = f"{API_BASE}/pages/?filter=slug:{PAGE_SLUG}"
     req = urllib.request.Request(url, headers=get_headers())
     with urllib.request.urlopen(req) as resp:
         data = json.loads(resp.read())
-
     page = data["pages"][0]
-    page_id = page["id"]
-    updated_at = page["updated_at"]
+    return page["id"], page["updated_at"]
+
+def update_ghost_page(html_content):
+    # Her update öncesi fresh updated_at al
+    page_id, updated_at = get_page_info()
 
     lexical = json.dumps({
         "root": {
@@ -169,7 +170,7 @@ def webhook():
     try:
         posts = fetch_all_posts()
         html = build_html(posts)
-        update_ghost_page(html)
+        result = update_ghost_page(html)
         return jsonify({"status": "ok", "posts": len(posts)}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
