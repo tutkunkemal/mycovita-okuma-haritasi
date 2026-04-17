@@ -191,7 +191,6 @@ def get_page_info():
 
 
 def update_ghost_page(html_content):
-    page_id, updated_at = get_page_info()
     lexical = json.dumps({
         "root": {
             "children": [{"type": "html", "html": html_content, "version": 1}],
@@ -202,13 +201,22 @@ def update_ghost_page(html_content):
             "version": 1
         }
     })
-    payload = json.dumps({
-        "pages": [{"lexical": lexical, "updated_at": updated_at}]
-    }).encode("utf-8")
-    update_url = API_BASE + "/pages/" + page_id + "/"
-    req = urllib.request.Request(update_url, data=payload, headers=get_headers(), method="PUT")
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read())
+
+    for attempt in range(3):
+        page_id, updated_at = get_page_info()
+        payload = json.dumps({
+            "pages": [{"lexical": lexical, "updated_at": updated_at}]
+        }).encode("utf-8")
+        update_url = API_BASE + "/pages/" + page_id + "/"
+        req = urllib.request.Request(update_url, data=payload, headers=get_headers(), method="PUT")
+        try:
+            with urllib.request.urlopen(req) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            if e.code == 409 and attempt < 2:
+                time.sleep(1)
+                continue
+            raise
 
 
 @app.route("/webhook", methods=["GET", "POST"])
@@ -244,4 +252,4 @@ def health():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port) github da bu kod var,
